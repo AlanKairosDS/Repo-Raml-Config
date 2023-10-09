@@ -2,6 +2,8 @@ pipeline {
     agent any
 
     environment {
+        COMMITER_EMAIL = ""
+        COMMITER_USER = ""
         GIT_REPO_RAML = ""
         REPO_CONFIG = ""
         REPO_RAML = ""
@@ -14,6 +16,7 @@ pipeline {
         stage('Environments') {
             steps {
                 script {
+                    variables_git()
                     variables_repositorios("CONFIG", "${env.REPO_GIT_CONFIG}")
                     variables_repositorios("RAML", "${GIT_URL}")
                 }
@@ -29,7 +32,23 @@ pipeline {
             }
         }
 
-        stage('Validar y Guardar Archivos') {
+        stage('Validar Archivos Raml') {
+            steps {
+                script {
+                    validar_archivos_raml()
+                }
+            }
+        }
+
+        stage('Publicar en Github') {
+            steps {
+                script {
+                    guardar_archivos_html()
+                }
+            }
+        }
+
+        /*stage('Validar y Guardar Archivos') {
             environment {
                 REPO_RAML = "${REPO_RAML}"
                 FILENAME_RAML = "${FILENAME_RAML}"
@@ -54,7 +73,7 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
     }
     post {
         success {
@@ -66,6 +85,23 @@ pipeline {
             enviar_email("FAILURE")
             cleanWs()
         }
+    }
+}
+
+def variables_git() {
+    script {
+        def commit_email = sh (
+            script: 'git show -s --pretty=\"%ae\"',
+            returnStdout: true
+        ).trim()
+
+        def commit_user = sh (
+            script: 'git show -s --pretty=\"%an\"',
+            returnStdout: true
+        ).trim()
+
+        COMMITER_EMAIL = commit_email
+        COMMITER_USER = commit_user
     }
 }
 
@@ -112,6 +148,8 @@ def guardar_archivos_html() {
             sh script: '''
                 cp -f ./${FILENAME_HTML} ./apis_raml_html
                 cd ./apis_raml_html
+                git config --global user.email "${COMMITER_EMAIL}"
+                git config --global user.name "${COMMITER_USER}"
                 git add ${FILENAME_HTML}
                 git commit -m "Jenkins Pipeline: ${JOB_NAME} - Build: ${BUILD_NUMBER}"
                 git push -u https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/${GIT_USERNAME}/apis_raml_html.git

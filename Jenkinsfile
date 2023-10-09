@@ -32,24 +32,10 @@ pipeline {
             }
         }
 
-        stage('Validar Archivos Raml') {
-            steps {
-                script {
-                    validar_archivos_raml()
-                }
-            }
-        }
-
-        stage('Publicar en Github') {
-            steps {
-                script {
-                    guardar_archivos_html()
-                }
-            }
-        }
-
-        /*stage('Validar y Guardar Archivos') {
+        stage('Validar y Guardar Archivos') {
             environment {
+                COMMITER_EMAIL = "${COMMITER_EMAIL}"
+                COMMITER_USER = "${COMMITER_USER}"
                 REPO_RAML = "${REPO_RAML}"
                 FILENAME_RAML = "${FILENAME_RAML}"
                 FILENAME_HTML = "${FILENAME_HTML}"
@@ -73,7 +59,7 @@ pipeline {
                     }
                 }
             }
-        }*/
+        }
     }
     post {
         success {
@@ -99,6 +85,9 @@ def variables_git() {
             script: 'git show -s --pretty=\"%an\"',
             returnStdout: true
         ).trim()
+
+        echo "COMMITTER_EMAIL: ${commit_email}"
+        echo "COMMITTER_USER: ${commit_user}"
 
         COMMITER_EMAIL = commit_email
         COMMITER_USER = commit_user
